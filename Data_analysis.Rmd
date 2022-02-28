@@ -1,0 +1,29 @@
+---
+title: "Data_analysis"
+author: "Oleg"
+date: "23 02 2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library("readr")
+library("dplyr")
+library("tidyverse")
+
+```
+
+```{r}
+
+
+                                                                       
+count(Vaccine, Vaccine_dose) 
+
+mytab <- table(Vaccine$Vaccine_type, Vaccine$Vaccine_dose)
+#data.frame(mytab)
+mytab
+
+#cumsum
+
+```

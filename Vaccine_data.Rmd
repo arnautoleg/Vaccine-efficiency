@@ -1,0 +1,199 @@
+---
+title: "COVID_19_Vaccination"
+author: "Oleg"
+date: "08 02 2022"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library("readr")
+library("dplyr")
+library("tidyverse")
+library(ggplot2)
+library(dplyr)
+library(hrbrthemes)
+library(psych)
+library(summarytools)
+library(table1)
+library(boot)
+
+```
+
+```{r}
+
+#Read file
+library(readr)
+df <- read_delim("Data/top 1000000.csv", 
+    delim = ";", escape_double = FALSE, col_names = FALSE, 
+    trim_ws = TRUE)
+View(df)
+
+```
+
+```{r}
+Vaccine <-  df%>%                                    # For time row statistics
+  select(-c(1, 3, 5, 6, 11, 12, 13, 16, 17, 20:23))  # Remove non-informative variables
+
+names(Vaccine) <- c('IDNP', 'IDNP_S', 'Gender', 'Age_Data', 'Raion', 
+                       'Adress', 'Vaccine_data', 'Vaccine_type', 'Vaccine_dose', 'Medical_nonMedical')    # Rename variables
+
+Vaccine <- Vaccine%>%
+    mutate(IDNP = coalesce(IDNP, IDNP_S))%>%                                                              # merge IDNP, IDNP_S
+    mutate(Age_years = as.integer(lubridate::time_length(difftime(Vaccine_data, Age_Data), "years")))%>%  # Age estimation 
+    mutate(Gender = as.factor(Gender))%>%
+    mutate(Raion = as.factor(Raion))%>%
+    mutate(Vaccine_type = as.factor(Vaccine_type))%>%
+    mutate(Medical_nonMedical = as.factor(Medical_nonMedical))%>%
+    mutate(Adress = as.factor(Adress))%>%
+    select(-c(IDNP_S, Age_Data))%>%                                                       # Eliminate non-informative variable
+    distinct(IDNP, Vaccine_data, Vaccine_dose, .keep_all = TRUE)%>%                       # Eliminate identical Rows by IDNP + Data + Dose
+    filter((Vaccine_type == "Gam-COVID-VAC (Sputnik-V)" & Vaccine_dose <= 4) |  
+           (Vaccine_type == "JANSSEN Vaccin COVID-19"   & Vaccine_dose <= 2) |
+           (is.element(Vaccine_type, c("Astra Zeneca", "Pfizer/BioNTech - Comirnaty", 
+                                       "Moderna - mRNA-1273", "Sinopharm", "Sinovac")) & Vaccine_dose <= 3  )) %>% # remove vaccine dublicates
+          
+    
+   
+
+    drop_na()                                                                             # minus 1 line
+    
+count(Vaccine, Vaccine_dose) 
+
+
+
+```
+```{r}
+
+mytab <- table(Vaccine$Vaccine_type, Vaccine$Vaccine_dose)
+#data.frame(mytab)
+mytab
+
+#cumsum
+
+
+```
+
+
+```{r}
+
+Vaccine %>%
+  summarise_all(funs(sum(is.na(.))))    # NA values determination
+
+a <- count(Vaccine, Vaccine_data)
+a <- a[-c(1, 2, 3, 4, 5, 365:379), ]
+a
+
+```
+
+
+
+
+```{r}
+
+
+RT <- Vaccine %>% 
+        group_by(IDNP) %>%
+        top_n(1, abs(Vaccine_dose))   # Dublicate elimination by IDNP + saving max value by Vaccine_dose
+        
+  
+```
+
+
+
+
+
+```{r}
+
+#RT$Vaccine_type <- levels(droplevels(RT$Vaccine_type))
+
+RT$Vaccine_type <-  factor(RT$Vaccine_type)  # to eliminate NULL level
+
+mytab <- table(RT$Vaccine_type, RT$Vaccine_dose)
+#data.frame(mytab)
+mytab
+
+```
+
+
+```{r}
+RT_intermeddiate <-  RT
+RT_intermeddiate <- RT_intermeddiate%>% 
+  # increase JANSSEN Vaccin COVID-19 to manage Vaccine status
+  mutate(Vaccine_dose = ifelse(Vaccine_type == "JANSSEN Vaccin COVID-19", Vaccine_dose + 1, Vaccine_dose))%>% 
+  # Vaccine status determination
+  mutate(Vaccine_status = "0")%>%
+  mutate(Vaccine_status = ifelse(Vaccine_dose == 1, "Incomplete", Vaccine_status))%>%
+  mutate(Vaccine_status = ifelse(Vaccine_dose == 2, "Complete", Vaccine_status))%>%
+  mutate(Vaccine_status = ifelse(Vaccine_dose >= 3, "Booster", Vaccine_status))%>%
+  mutate(Vaccine_status=factor(Vaccine_status))
+
+#RT_intermeddiate <- RT_intermeddiate%>%
+  #mutate(Vaccine_status=factor(Vaccine_status))
+  
+
+
+```
+
+
+```{r}
+
+#Survived/nonSurvived
+#Positive tests dataframe completed (Survive/nonSurvive)
+
+
+# 1st Part - Global vaccination status (vaccination rate(accumulated frequency), vaccination map(Raion))
+#          - Tables in relation to aging, gender, map(connected to map)
+
+# 2st Part - efficiency. Primary outcome - survive/nonsurvive in relation to aging, gender, vaccination status, vaccine type, Adress for COVID-19 pozitive respondents
+
+
+```
+
+
+```{r}
+
+
+#install.packages("table1")
+#library(table1)
+#library(boot)
+table1(~ Vaccine_status, data=RT_intermeddiate, topclass="Rtable1-grid")
+label(RT_intermeddiate$Vaccine_status) <- "Vaccine, status"
+
+table1(~ Gender + Age_years + Vaccine_type| Vaccine_status, 
+       data=RT_intermeddiate, 
+       render.continuous=c(.="Mean (SD)", 
+                           .="Median (IQR)", 
+                           .="[Min, Max]"),
+       topclass="Rtable1-grid")
+
+label(RT_intermeddiate$Age_years) <- "Age, years"
+label(RT_intermeddiate$Vaccine_type) <- "Vaccine, type"
+label(RT_intermeddiate$Vaccine_status) <- "Vaccine, status"
+
+table1(~ Raion | Vaccine_status, data=RT_intermeddiate, topclass="Rtable1-grid")
+
+
+
+
+
+
+```
+```{r}
+
+
+# Represent it
+p <- RT_intermeddiate %>%
+  #filter(Gender == "masc")%>%
+  ggplot(aes(x=Age_years, fill=Gender)) +
+    geom_histogram(color="#e9ecef", alpha=0.6, position = 'identity') +
+    scale_fill_manual(values=c("#69b3a2", "#404080")) +
+    theme_ipsum() +
+    facet_wrap(~Gender)
+p
+
+
+```

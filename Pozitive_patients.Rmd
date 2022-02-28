@@ -1,0 +1,485 @@
+---
+title: "Pozitive_patients"
+author: "Oleg"
+date: "25 02 2022"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE,     # отображение кода в итоговом документе
+                      message = FALSE,  # отображение сообщений в итоговом документе
+                      error = FALSE,    # отображение ошибок в итоговом документе
+                      warning = FALSE,  # отображение предупреждений в итоговом документе
+                      cache = FALSE,    # надо ли сохранять код в чанках до их изменений
+                      fig.height = 8, # высота рисунка в дюймах
+                      fig.width = 20)  # широта рисунка в дюймах
+
+#install.packages("ggstatsplot")
+#install.packages("ISLR")
+#install.packages("flextable")
+#install.packages("ReporteRs")
+#install.packages("table1")
+library(readxl)
+library(dplyr)
+library(ggstatsplot)
+library(gt)
+library(dplyr)
+library(ggplot2)
+library(ggstatsplot)
+library(tidyverse)
+library(readxl)
+library(flextable)
+#library(ReporteRs)
+library(table1)
+library(boot)
+
+```
+
+```{r}
+
+#library(readxl)
+
+#Open primary information for COVID-19 positive tests and non Survived 
+  
+Pozitive1 <- read_excel("C:/Users/User/Documents/COVID_19_Vaccine/Data/1 TOTAL POZITIVI 08.03.2020-31.12.2020.xlsx", guess_max = 21474836) 
+Pozitive2 <- read_excel("C:/Users/User/Documents/COVID_19_Vaccine/Data/2 TOTAL POZITIVI 01.01.2021-11.07.2021.xlsx", guess_max = 21474836)
+Pozitive3 <- read_excel("C:/Users/User/Documents/COVID_19_Vaccine/Data/3 TOTAL POZITIVI 21.08.2021.xlsx", guess_max = 21474836)
+Pozitive4 <- read_excel("C:/Users/User/Documents/COVID_19_Vaccine/Data/4 TOTAL POZITIVI 16.01.2022.xlsx", guess_max = 21474836) 
+Decese <- read_excel("C:/Users/User/Documents/COVID_19_Vaccine/Data/baza decese la 17.01.2022.xlsx", guess_max = 21474836)
+
+
+# Variables selection, event data (posutuve test) being ANSP_data
+
+df_Pozitive1 <- Pozitive1[, c(1, 7, 8, 9, 10, 11, 12, 13, 15, 18, 20, 28, 29, 31, 36, 37, 38)]
+df_Pozitive1 <- setNames(df_Pozitive1, c("ID_sample","Name","IDNP", "Ading_Date", 
+                                         "Aging", "Sex", "Region", "Town", "Rural_Urban", 
+                                         "Country", "Import", "Medical_staff", "Medical_qualification", 
+                                         "Medical_organization", "Pregnancy", "Pregnancy_state", "Data_ANSP"))
+
+df_Pozitive2 <- Pozitive2[, c(1, 7, 8, 9, 10, 11, 12, 13, 15, 18, 20, 28, 29, 31, 36, 37, 38)]
+df_Pozitive2 <- setNames(df_Pozitive2, c("ID_sample","Name","IDNP", "Ading_Date", 
+                                         "Aging", "Sex", "Region", "Town", "Rural_Urban", 
+                                         "Country", "Import", "Medical_staff", "Medical_qualification", 
+                                         "Medical_organization", "Pregnancy", "Pregnancy_state", "Data_ANSP"))
+
+df_Pozitive3 <- Pozitive3[, c(1, 5, 7, 8, 9, 10, 11, 12, 14, 16, 18, 27, 28, 29, 30, 31, 46)]
+df_Pozitive3 <- setNames(df_Pozitive3, c("ID_sample","Name","IDNP", "Ading_Date", 
+                                         "Aging", "Sex", "Region", "Town", "Rural_Urban", 
+                                         "Country", "Import", "Medical_staff", "Medical_qualification", 
+                                         "Medical_organization", "Pregnancy", "Pregnancy_state", "Data_ANSP"))
+
+df_Pozitive4 <- Pozitive4[, c(1, 5, 7, 8, 9, 10, 11, 12, 14, 16, 18, 27, 28, 29, 30, 31, 46)]
+df_Pozitive4 <- setNames(df_Pozitive4, c("ID_sample","Name","IDNP", "Ading_Date", 
+                                         "Aging", "Sex", "Region", "Town", "Rural_Urban", 
+                                         "Country", "Import", "Medical_staff", "Medical_qualification", 
+                                         "Medical_organization", "Pregnancy", "Pregnancy_state", "Data_ANSP"))
+
+
+```
+
+
+```{r}
+
+# Merge 4 data frames for COVID-19 positive tests
+# We can add the 5th and so on to update the result
+
+total_1 <- rbind(df_Pozitive1, df_Pozitive2)
+
+total_2 <- rbind(total_1, df_Pozitive3)
+
+total <- rbind(total_2, df_Pozitive4)
+
+
+```
+
+
+```{r}
+# Variables processing for COVID-19 positive tests
+
+
+#library(dplyr)
+
+# Regions titles correction
+total$Region <- ifelse(total$Region %in% c("Anenii Noi", "Anenii noi"), "Anenii Noi", total$Region)
+total$Region <- ifelse(total$Region %in% c("Anenii Noi", "Anenii noi"), "Anenii Noi", total$Region)
+total$Region <- ifelse(total$Region %in% c("cahul", "Cahul", "CAHUL"), "Cahul", total$Region)
+total$Region <- ifelse(total$Region %in% c("chisinau","Chisinau", "CHISINAU"), "Chisinau", total$Region)
+total$Region <- ifelse(total$Region %in% c("Criuleni","CRIULENI"), "Criuleni", total$Region)
+total$Region <- ifelse(total$Region %in% c("DUBASARI","Dubasari"), "Dubasari", total$Region)
+total$Region <- ifelse(total$Region %in% c("Ialoveni","IALOVENI"), "Ialoveni", total$Region)
+total$Region <- ifelse(total$Region %in% c("Leova","LEOVA", "leova"), "Leova", total$Region)
+total$Region <- ifelse(total$Region %in% c("Ungheni","UNGHENI"), "Ungheni", total$Region)
+total$Region <- ifelse(total$Region %in% c("transnistria","Transnistria"), "Transnistria", total$Region)
+total$Region <- ifelse(total$Region %in% c("telenesti","Telenesti"), "Telenesti", total$Region)
+total$Region <- ifelse(total$Region %in% c("straseni","Straseni"), "Straseni", total$Region)
+total$Region <- ifelse(total$Region %in% c("soroca","Soroca"), "Soroca", total$Region)
+total$Region <- ifelse(total$Region %in% c("soldanesti","Soldanesti"), "Soldanesti", total$Region)
+total$Region <- ifelse(total$Region %in% c("riscani","Riscani"), "Riscani", total$Region)
+total$Region <- ifelse(total$Region %in% c("OrheI","ORHEI"), "Orhei", total$Region)
+
+
+#sum(is.na(total$ID_sample)) # NA count determination
+#sum(is.na(total$Aging))     # NA count determination if 0 Aging-date can be removed
+#sum(is.na(total$Sex))
+#sum(is.na(total$Import))
+#summary(total$Sex)
+#summary(total$Region)
+#sum(is.na(df_Pozitive2$Aging)) # NA count determination
+#sum(is.na(df_Pozitive4$Data_lab))
+#df_Pozitive4$Data_lab <- as.factor(df_Pozitive4$Data_lab)
+
+total <- total%>%
+    mutate(Sex=ifelse(total$Sex %in% c("F", "f"), "F", "M"))%>%
+    mutate(Sex=factor(Sex, labels=c("F", "M")))%>%                                  # Sex as factor
+    mutate(Region=factor(Region))%>%
+    mutate(Rural_Urban=ifelse(total$Rural_Urban == "Urban", "Urban", "Rural"))%>%
+    mutate(Rural_Urban=factor(Rural_Urban, labels=c("Rural", "Urban")))%>%          # Rural_Urban as factor   
+    mutate(Import=ifelse(Import %in% c("Import", "import"), "Import", "Local"))%>%
+    mutate(Import=factor(Import, labels=c("Import", "Local")))%>%                   # Import as factor
+    mutate(Medical_staff=ifelse(Medical_staff %in% c("da", "Da", "DA"), "Da", "Nu"))%>%
+    mutate(Medical_staff=factor(Medical_staff, labels=c("Da", "Nu")))%>%            # Medical_staff as factor
+    mutate(Pregnancy=ifelse(Pregnancy %in% c("da", "Da", "DA"), "Da", "Nu"))%>%
+    mutate(Pregnancy=factor(Pregnancy, labels=c("Da", "Nu")))%>%                    # Pregnancy as factor    
+    mutate(Pregnancy_state=factor(Pregnancy_state))%>%
+    mutate(Outcome = ifelse(total$ID_sample %in% Decese$`N/o`, 1, 0))%>%            # outcome variable using data from "Decese"
+    mutate(Outcome=factor(Outcome, labels=c("Survive", "nonSurvive")))%>%           # Outcome as factor
+    mutate(Data_ANSP_month=format(total$Data_ANSP,"%B"))%>%
+    mutate(Data_ANSP_month=factor(Data_ANSP_month, labels=c("August", "April", "December", "July",
+                                                            "June", "May", "March", "November", 
+                                                            "Octomber", "September", "February", "January")))%>%  # Month as factor
+    select(-c(4 ,8, 10, 13, 14)) # remove variables Aging date and so on
+
+#summary(total)
+#str(total)
+
+
+#total$Data_ANSP_month <- 
+
+
+
+#Aging_0 <- total%>%
+    #filter(Aging == 0)  # 2 persons has aging 0
+
+#summary(total$Data_ANSP_month)
+
+#ID_sample         - номер пробы 
+#Name              - имя, фамилия    
+#IDNP              - номер паспорта для merge c вакцинами    (char)  есть и Приднестровье, там цифры и буквы
+#Aging             - возраст                                 (int)
+#Sex               - пол                                    (factor)
+#Region            - район республики                       (factor)
+#Rural_Urban       - город/село                             (factor)
+#Import            - завезён или нет                        (factor)
+#Medical_staff     - медицинский работник                   (factor)
+#Pregnancy         - беременность                           (factor)
+#Pregnancy_state   - срок беременности                      (factor)
+#Data_ANSP         - дата анализа                            (data)
+#Data_ANSP_month   - месяц анализа                          (factor)
+#Outcome           - исход лечения                          (factor)
+
+#Vaccine_data   - последняя вакцина (для коррекции Vaccination_status)
+#Vaccine_type   - вакцина
+#Vaccine_status - статус вакцинации                     (factor)
+
+
+
+#table(total$Region)
+#table(total$Rural_Urban)
+#table(total$Pregnancy)
+#table(total$Pregnancy_state)
+#table(total$Medical_staff)
+#table(total$Import)
+
+
+```
+
+```{r}
+
+
+RT_intermeddiate <- read.csv("Data/RT_intermeddiate.csv")
+
+
+# left join total (positive COVID 19 with outcome) and RT_intermeddiate (vaccination data set) in R using left_join() function 
+
+#library(dplyr)
+
+df6 <- total %>% 
+  left_join(RT_intermeddiate[,c(1, 5, 6, 10)], by= "IDNP")%>% # Left join by IDNP
+  filter(if_any(IDNP, complete.cases))%>%                     # Remove NA IDNP - no information about the vaccination
+  filter(Aging > 17)                                          # Select only Aging > 17                             
+
+
+sum(is.na(df6$IDNP)) # NA count determination
+#summary(df6)
+#str(df6)  # + 3 variables related to vaccine in comparison with total
+
+```
+
+
+```{r}
+
+# Vaccination status correction. 4 levels instead 3 (+ Non-vaccinated)
+
+df6$Vaccine_status_1 <- ifelse(is.na(df6$Vaccine_status), "Non-vaccinated", df6$Vaccine_status)
+df6$Vaccine_status_1 <- factor(df6$Vaccine_status_1, labels = c("Booster", "Complete", "Incomplete", "Non-vaccinated"))
+#summary(df6$Vaccine_status_1)
+
+
+# Vaccination type correction. + Non-vaccin level
+df6$Vaccine_type_1 <- ifelse(is.na(df6$Vaccine_type), "Non-vaccine", df6$Vaccine_type)
+df6$Vaccine_type_1 <- factor(df6$Vaccine_type_1, labels = c("Astra Zeneca", "Gam-COVID-VAC (Sputnik-V)", "JANSSEN Vaccin COVID-19 ",
+                                                            "Moderna - mRNA-1273", "Non-vaccine", "Pfizer/BioNTech - Comirnaty",
+                                                            "Sinopharm", "Sinovac"))
+summary(df6$Vaccine_type)
+summary(df6$Vaccine_type_1)
+
+
+
+
+# control Age rate
+df6 <- df6 %>%
+    #mutate(Aging_cut = cut(Aging, 
+                           #breaks = c(15, 19, 24, 29 ,34, 39, 44, 49, 54, 59, max(Aging)), 
+                           #labels = c('15-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54', '55-59', '60+'), 
+                           #include.lowest=TRUE))
+    mutate(Aging_cut = cut(Aging, 
+                           breaks = c(17, 24, 34, 44, 54, 64, max(Aging)), 
+                           labels = c('18-24', '25-34', '35-44', '45-54', '55-64', '65+'), 
+                           include.lowest=TRUE))
+    #mutate(Vaccine_status_1 = "Non-vaccinated")%>%
+    #mutate(Vaccine_status_1 = factor(Vaccine_status, labels = c("Non-vaccinated")))
+    #mutate(Vaccine_status = Vaccine_status, replace_na('none'))%>%
+    #mutate(Vaccine_status=ifelse(df6$Vaccine_status %in% c("Booster", "Complete", "Incomplete"), Vaccine_status, "Non-vaccinated"))%>%
+  
+    #mutate(Vaccine_status=factor(Vaccine_status))
+    #mutate(Vaccine_type=ifelse(df6$Vaccine_type %in% c("Astra Zeneca", "Gam-COVID-VAC (Sputnik-V)", "JANSSEN Vaccin COVID-19 ",
+                                                       #"Moderna - mRNA-1273", "Pfizer/BioNTech - Comirnaty",
+                                                       #"Sinopharm", "Sinovac"), Vaccine_type, "Non-type"))
+#df6$Aging_2 <- df6$Aging  # to compare Aging_cut
+#summary(df6)
+#str(df6)
+
+
+
+```
+
+```{r}
+
+#install.packages("table1")
+#library(table1)
+#library(boot)
+
+
+table1(~ Sex + Rural_Urban + Vaccine_type_1 + Aging_cut + Vaccine_status_1 | Outcome, 
+       data=df6, 
+       render.continuous=c(.="Mean (SD)", 
+                           .="Median (IQR)", 
+                           .="[Min, Max]"),
+       topclass="Rtable1-grid")
+
+label(df6$Aging_cut) <- "Age"
+label(df6$Vaccine_type_1) <- "Vaccine, type"
+label(df6$Vaccine_status_1) <- "Vaccine, status"
+label(df6$Rural_Urban) <- "Rural/Urban"
+
+
+```
+
+
+
+
+```{r}
+# association test (or contingency table analysis)
+
+#install.packages("ggstatsplot")
+#library(ggstatsplot)
+
+#df6$Vaccine_status_1
+
+# Total result vaccinated vs nonvaccinated for Aging >= 18 for 2021
+
+#ftable(df6$Vaccine_status_1, df6$Outcome)
+
+
+ggbarstats(df6, x = Outcome, y = Vaccine_status, perc.k = 1L, xlab = "Vaccine status")   # difference among positive vaccinated
+ggbarstats(df6, x = Outcome, y = Vaccine_status_1, perc.k = 1L, xlab = "Vaccine status") # difference among all positive
+#ggbarstats(df6, x = Outcome, y = Vaccine_type, perc.k = 1L)
+#ggbarstats(df6, x = Deces, y = Vaccinat_complet, perc.k = 1L)
+
+```
+
+```{r}
+
+ftable(df6$Vaccine_status_1, df6$Outcome, df6$Aging_cut)
+#round(prop.table(ftable(df6$Vaccine_status_1, df6$Outcome, df6$Aging_cut)), 2)      # proportion total
+round(prop.table(ftable(df6$Vaccine_status_1, df6$Outcome, df6$Aging_cut), 1), 2)   # proportion by rows
+round(prop.table(ftable(df6$Vaccine_status_1, df6$Outcome, df6$Aging_cut), 2), 2)   # proportion by columns
+
+
+
+```
+
+
+
+```{r}
+
+grouped_ggbarstats(
+    data          = df6,
+    x             = Outcome,
+    y             = Vaccine_status_1,
+    perc.k = 1L,
+    grouping.var  = Aging_cut,
+    plotgrid.args = list(nrow = 2),
+    xlab = "Vaccine status"
+)
+
+```
+
+```{r}
+
+ftable(df6$Sex, df6$Outcome, df6$Vaccine_status_1)
+#prop.table(ftable(df6$Vaccine_status_1, df6$Outcome, df6$Sex))      # proportion total
+round(prop.table(ftable(df6$Sex, df6$Outcome, df6$Vaccine_status_1), 1), 2)   # proportion by rows
+round(prop.table(ftable(df6$Sex, df6$Outcome, df6$Vaccine_status_1), 2), 2)   # proportion by columns
+
+
+
+
+```
+
+
+```{r}
+jpeg("a.jpeg", quality = 500)
+grouped_ggbarstats(
+    data          = df6,
+    x             = Outcome,
+    y             = Vaccine_status_1,
+    perc.k = 1L,
+    grouping.var  = Sex,
+    plotgrid.args = list(nrow = 2),
+    xlab = "Vaccine status"
+)
+
+
+
+
+
+```
+
+
+
+```{r}
+
+ftable(df6$Rural_Urban, df6$Outcome, df6$Vaccine_status_1)
+#prop.table(ftable(df6$Rural_Urban, df6$Outcome, df6$Vaccine_status_1))      # proportion total
+round(prop.table(ftable(df6$Rural_Urban, df6$Outcome, df6$Vaccine_status_1), 1), 2)   # proportion by rows
+round(prop.table(ftable(df6$Rural_Urban, df6$Outcome, df6$Vaccine_status_1), 2), 2)   # proportion by columns
+
+
+#round(prop.table(ftable(df6$Rural_Urban, df6$Outcome, df6$Vaccine_status_1), 1), 2)
+
+```
+
+```{r}
+jpeg("b.jpeg", quality = 200)
+grouped_ggbarstats(
+    data          = df6,
+    x             = Outcome,
+    y             = Vaccine_status_1,
+    perc.k = 1L,
+    grouping.var  = Rural_Urban,
+    plotgrid.args = list(nrow = 2),
+    xlab = "Vaccine status"
+)
+
+
+
+```
+
+```{r}
+
+ftable(df6$Data_ANSP_month, df6$Outcome, df6$Vaccine_status_1)
+#prop.table(ftable(df6$Data_ANSP_month, df6$Outcome, df6$Vaccine_status_1))      # proportion total
+round(prop.table(ftable(df6$Data_ANSP_month, df6$Outcome, df6$Vaccine_status_1), 1), 2)   # proportion by rows
+round(prop.table(ftable(df6$Data_ANSP_month, df6$Outcome, df6$Vaccine_status_1), 2), 2)   # proportion by columns
+
+```
+
+
+```{r}
+
+grouped_ggbarstats(
+    data          = df6,
+    x             = Outcome,
+    y             = Vaccine_status_1,
+    perc.k = 1L,
+    grouping.var  = Data_ANSP_month,
+    plotgrid.args = list(nrow = 3), 
+    xlab = "Vaccine status"
+)
+
+```
+
+
+```{r}
+
+#install.packages("vcd")
+#library(vcd)
+#data(df6)
+#mosaic(df6, shade = TRUE)
+
+
+# Regression analysis 
+
+#install.packages("ISLR")
+
+fit.full <- glm(Outcome ~ Sex + Aging_cut + Rural_Urban + Vaccine_status_1,
+                data=df6, family=binomial())
+
+round(summary(fit.full)$coef, 4)
+
+round(exp(cbind(OR = coef(fit.full), confint(fit.full))), 2)
+
+
+```
+
+
+```{r}
+
+#install.packages("vcd")
+#library(vcd)
+#data(df6)
+#mosaic(df6, shade = TRUE)
+
+
+# Regression analysis 
+
+#install.packages("ISLR")
+
+fit.full <- glm(Outcome ~ Sex + Aging_cut + Rural_Urban + Vaccine_status_1 + Data_ANSP_month,
+                data=df6, family=binomial())
+
+round(summary(fit.full)$coef, 4)
+
+round(exp(cbind(OR = coef(fit.full), confint(fit.full))), 2)
+
+
+```
+
+```{r}
+fit.full <- glm(Outcome ~ Sex + Aging_cut + Rural_Urban + df6$Vaccine_type_1 + Data_ANSP_month,
+                data=df6, family=binomial())
+
+round(summary(fit.full)$coef, 4)
+
+round(exp(cbind(OR = coef(fit.full), confint(fit.full))), 2)
+
+```
+
+
+
+
